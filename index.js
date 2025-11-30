@@ -40,7 +40,13 @@ require("./models/Franchise");
 
 
 // ✅ Database sync (must be before listen)
-sequelize.sync({ alter: true })
+// Use connectWithRetry helper (attached to exported sequelize instance)
+const connectWithRetry = sequelize.connectWithRetry || (async () => {
+  // fallback - if helper not present, call sync directly
+  await sequelize.sync({ alter: true });
+});
+
+connectWithRetry()
   .then(() => {
     console.log("✅ Database connected & synced");
 
@@ -113,4 +119,6 @@ sequelize.sync({ alter: true })
   })
   .catch((err) => {
     console.error("❌ Database connection failed:", err);
+    // Exit process with failure so Render marks the deploy as failed
+    process.exit(1);
   });

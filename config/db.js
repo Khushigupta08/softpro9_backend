@@ -50,4 +50,38 @@ if (isProduction && hasDatabaseURL) {
   });
 }
 
-module.exports = sequelize;
+  // Add a connection helper with retry logic to make startup resilient
+  async function wait(ms) {
+    return new Promise((res) => setTimeout(res, ms));
+  }
+
+  async function connectWithRetry(options = {}) {
+    const maxRetries = Number(process.env.DB_MAX_RETRIES) || options.maxRetries || 10;
+    const initialDelay = Number(process.env.DB_RETRY_DELAY_MS) || options.initialDelay || 2000;
+
+    let attempt = 0;
+
+    while (true) {
+      try {
+        attempt += 1;
+        await sequelize.authenticate();
+        // sync models after successful authentication
+        await sequelize.sync({ alter: true });
+        console.log('✅ Database connected & synced');
+        return;
+      } catch (err) {
+        if (attempt >= maxRetries) {
+          console.error('❌ Database connection failed after retries:', err);
+          throw err;
+        }
+        const delay = initialDelay * Math.pow(2, attempt - 1);
+        console.warn(`⚠️  DB connect attempt ${attempt} failed. Retrying in ${delay}ms...`);
+        await wait(delay);
+      }
+    }
+  }
+
+  // Preserve compatibility: export sequelize instance, and attach helper
+  sequelize.connectWithRetry = connectWithRetry;
+
+  module.exports = sequelize;
