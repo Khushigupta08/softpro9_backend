@@ -12,6 +12,10 @@ services:
         value: 5000
       - key: NODE_VERSION
         value: 20
+      - key: DATABASE_URL
+        fromDatabase:
+          name: softpro9-db
+          property: connectionString
 
 databases:
   - name: softpro9-db
