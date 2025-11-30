@@ -39,6 +39,16 @@ require("./models/Franchise");
 
 
 
+// Log DB connection method for easier debugging
+if (process.env.DATABASE_URL) {
+  const masked = process.env.DATABASE_URL.replace(/(postgres:\/\/)(.+@)?/, '$1****@');
+  console.log('Database config: using DATABASE_URL:', masked);
+} else if (process.env.NODE_ENV === 'production') {
+  console.log('Database config: NODE_ENV=production, using PG env vars (DB_HOST/DB_PORT/DB_NAME)');
+} else {
+  console.log('Database config: development mode, using SQLite file:', process.env.DB_FILE || './softpro9.db');
+}
+
 // ✅ Database sync (must be before listen)
 // Use connectWithRetry helper (attached to exported sequelize instance)
 const connectWithRetry = sequelize.connectWithRetry || (async () => {
