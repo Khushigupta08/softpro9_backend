@@ -1,13 +1,33 @@
 // config/db.js
 const { Sequelize } = require('sequelize');
 
-// Allow overriding DB file via environment (Render friendly)
-const storageFile = process.env.DB_FILE || './softpro9.db';
+// Use PostgreSQL on production (Render), SQLite on local
+const isProduction = process.env.NODE_ENV === 'production';
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: storageFile,
-  logging: false,
-});
+let sequelize;
+
+if (isProduction && process.env.DATABASE_URL) {
+  // PostgreSQL on Render
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    protocol: 'postgres',
+    logging: false,
+    ssl: true,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
+  });
+} else {
+  // SQLite locally
+  const storageFile = process.env.DB_FILE || './softpro9.db';
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: storageFile,
+    logging: false,
+  });
+}
 
 module.exports = sequelize;
