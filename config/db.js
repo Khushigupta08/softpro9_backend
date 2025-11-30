@@ -7,16 +7,30 @@ const hasDatabaseURL = Boolean(process.env.DATABASE_URL);
 
 let sequelize;
 
-if (isProduction || hasDatabaseURL) {
-  // PostgreSQL on Render or when DATABASE_URL is provided
-  const databaseURL = process.env.DATABASE_URL;
-  if (!databaseURL) {
-    throw new Error('DATABASE_URL is required in production environment');
-  }
-  
-  sequelize = new Sequelize(databaseURL, {
+if (isProduction && hasDatabaseURL) {
+  // PostgreSQL on Render with DATABASE_URL
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
+    logging: false,
+    ssl: true,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
+  });
+} else if (isProduction && !hasDatabaseURL) {
+  // Production without DATABASE_URL - try to use pg connection string from environment
+  console.warn('⚠️  DATABASE_URL not set in production. Attempting to connect with PostgreSQL environment variables.');
+  sequelize = new Sequelize({
+    dialect: 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'softpro9_db',
+    username: process.env.DB_USER || 'softpro9_user',
+    password: process.env.DB_PASSWORD,
     logging: false,
     ssl: true,
     dialectOptions: {
