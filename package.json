@@ -6,11 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build": "npm install --build-from-source"
-  },
-  "engines": {
-    "node": "22.16.0"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
