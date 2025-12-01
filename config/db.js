@@ -5,10 +5,34 @@ const { Sequelize } = require('sequelize');
 const isProduction = process.env.NODE_ENV === 'production';
 const hasDatabaseURL = Boolean(process.env.DATABASE_URL);
 
+// Accept multiple common env var names for compatibility
+const PGHOST = process.env.PGHOST || process.env.DB_HOST || process.env.DB_HOSTNAME;
+const PGUSER = process.env.PGUSER || process.env.DB_USER || process.env.DB_USERNAME;
+const PGPASSWORD = process.env.PGPASSWORD || process.env.DB_PASSWORD;
+const PGDATABASE = process.env.PGDATABASE || process.env.DB_NAME || process.env.DB_DATABASE;
+const PGPORT = process.env.PGPORT || process.env.DB_PORT;
+const SQLITE_PATH = process.env.SQLITE_PATH || process.env.DB_FILE || './database.sqlite';
+
 let sequelize;
+
+function maskConnectionString(conn) {
+  if (!conn) return '';
+  try {
+    // try to parse postgres connection strings like postgres://user:pass@host:port/db
+    const m = conn.match(/^(.*:\/\/)(.*?)(:.*?@)(.*)$/);
+    if (m) {
+      return m[1] + m[2] + ':*****@' + m[4];
+    }
+    // fallback: mask password-looking parts
+    return conn.replace(/:(?:[^@]+)@/, ':*****@');
+  } catch (e) {
+    return '***masked***';
+  }
+}
 
 if (isProduction && hasDatabaseURL) {
   // PostgreSQL on Render with DATABASE_URL
+  console.log('USING_POSTGRES', maskConnectionString(process.env.DATABASE_URL));
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
@@ -24,13 +48,15 @@ if (isProduction && hasDatabaseURL) {
 } else if (isProduction && !hasDatabaseURL) {
   // Production without DATABASE_URL - try to use pg connection string from environment
   console.warn('⚠️  DATABASE_URL not set in production. Attempting to connect with PostgreSQL environment variables.');
+  const connPreview = `host=${PGHOST || 'localhost'} user=${PGUSER || ''} db=${PGDATABASE || ''}`;
+  console.log('USING_POSTGRES', connPreview);
   sequelize = new Sequelize({
     dialect: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'softpro9_db',
-    username: process.env.DB_USER || 'softpro9_user',
-    password: process.env.DB_PASSWORD,
+    host: PGHOST || 'localhost',
+    port: PGPORT || 5432,
+    database: PGDATABASE || 'softpro9_db',
+    username: PGUSER || 'softpro9_user',
+    password: PGPASSWORD,
     logging: false,
     ssl: true,
     dialectOptions: {
@@ -42,7 +68,8 @@ if (isProduction && hasDatabaseURL) {
   });
 } else {
   // SQLite locally (development only)
-  const storageFile = process.env.DB_FILE || './softpro9.db';
+  const storageFile = SQLITE_PATH;
+  console.log('USING_SQLITE', storageFile);
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: storageFile,

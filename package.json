@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "migrate:sqlite2pg": "node scripts/migrate_sqlite_to_postgres.js"
   },
   "keywords": [],
   "author": "",
